@@ -20,11 +20,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct UpQuestApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @StateObject private var userViewModel = UserViewModel()
 
     var body: some Scene {
         WindowGroup {
-            NavigationView {
+            NavigationStack {
                 ContentView()
+                    .environmentObject(userViewModel)
             }
         }
     }

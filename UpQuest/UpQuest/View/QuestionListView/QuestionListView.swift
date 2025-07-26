@@ -24,43 +24,52 @@ struct QuestionListView: View {
             List {
                 ForEach(viewModel.questions.sorted(by: { $0.voteCount > $1.voteCount })) { question in
                     VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "person.circle")
+                                .foregroundColor(.white)
+                                .font(.title)
+
+                            Text("\(question.senderName)\(question.senderName == viewModel.adminId ? " (Admin)" : "")")
+                                .font(.title3)
+                                .foregroundStyle(.white)
+                                .fontWeight(.bold)
+
+                            Spacer()
+                        }
+
                         Text(question.content)
                             .font(.headline)
-                        Text("Sender: \(question.senderName)\(question.senderName == viewModel.adminId ? " (Admin)" : "")")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundStyle(.white)
+                            .padding(.top, 10)
 
                         if let answer = question.answer, !answer.isEmpty {
-                            Text("Reply: \(answer) (Admin)")
-                                .font(.subheadline)
-                                .foregroundColor(.blue)
+                            Text("- Admin: \(answer)")
+                                .font(.headline)
+                                .foregroundStyle(.green)
                         }
 
                         if question.isAnswered {
                             Text("Answered")
-                                .font(.caption)
-                                .foregroundColor(.green)
+                                .font(.headline)
+                                .foregroundStyle(.white)
                         }
 
                         HStack {
                             Button(action: {
                                 viewModel.vote(for: question, username: username)
                             }) {
-                                Label("\(question.voteCount)", systemImage: "hand.thumbsup")
+                                HStack {
+                                    Image(systemName: "hand.thumbsup")
+                                        .font(.title3)
+                                        .foregroundStyle(.white)
+
+                                    Text("\(question.voteCount)")
+                                        .font(.headline)
+                                        .foregroundStyle(.white)
+                                }
                             }
                             .buttonStyle(.bordered)
-
-                            Spacer()
-
-                            if username == viewModel.adminId {
-                                Button(action: {
-                                    viewModel.deleteQuestion(question)
-                                }) {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                                .buttonStyle(.bordered)
-                                .tint(.red)
-                            }
+                            .cornerRadius(20)
 
                             if username == viewModel.adminId,
                                let topQuestion = viewModel.questions.sorted(by: { $0.voteCount > $1.voteCount }).first,
@@ -74,10 +83,24 @@ struct QuestionListView: View {
                                         answerText = question.answer ?? ""
                                     }
                                 }) {
-                                    Label("Reply", systemImage: "bubble.left.and.bubble.right")
+                                    Image(systemName: "bubble.left.and.bubble.right")
+                                        .font(.title3)
+                                        .foregroundStyle(.white)
                                 }
                                 .buttonStyle(.bordered)
-                                .tint(.green)
+                                .cornerRadius(20)
+                            }
+
+                            if username == viewModel.adminId {
+                                Button(action: {
+                                    viewModel.deleteQuestion(question)
+                                }) {
+                                    Image(systemName: "trash")
+                                        .font(.title3)
+                                        .foregroundStyle(.white)
+                                }
+                                .buttonStyle(.bordered)
+                                .cornerRadius(20)
                             }
                         }
 

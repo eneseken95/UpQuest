@@ -9,44 +9,68 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var viewModel: UserViewModel
+    @State private var username: String = ""
+    @State private var password: String = ""
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Login")
-                .font(.largeTitle.bold())
+            Image(systemName: "person.crop.circle")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 75, height: 75)
+                .foregroundStyle(.white)
 
-            TextField("Username", text: $viewModel.inputUsername)
+            Text("Login Page")
+                .font(.title.bold())
+                .foregroundStyle(.white)
+                .padding(.bottom, 10)
+
+            TextField("User name", text: $username)
+                .fontWeight(.bold)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
 
-            SecureField("Password", text: $viewModel.password)
+            SecureField("Password", text: $password)
+                .fontWeight(.bold)
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
 
             Button(action: {
-                Task { await viewModel.login() }
+                Task { await viewModel.login(username: username, password: password) }
             }) {
                 if viewModel.isLoading {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle())
+                        .scaleEffect(1.3)
                         .padding()
                 } else {
                     Text("Login")
-                        .bold()
+                        .font(.headline)
+                        .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.orange)
-                        .foregroundColor(.white)
+                        .background(Color.blue)
+                        .foregroundStyle(.white)
                         .cornerRadius(8)
                 }
             }
             .disabled(viewModel.isLoading)
+            .padding(.top, 10)
         }
         .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color("Background_Color"))
+        .ignoresSafeArea()
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded {
+                    hideKeyboard()
+                }
+        )
         .alert(isPresented: $viewModel.showAlert) {
             Alert(
                 title: Text("Error"),
@@ -55,4 +79,9 @@ struct LoginView: View {
             )
         }
     }
+}
+
+#Preview {
+    LoginView()
+        .environmentObject(UserViewModel())
 }

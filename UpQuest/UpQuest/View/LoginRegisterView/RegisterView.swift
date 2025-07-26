@@ -9,20 +9,33 @@ import SwiftUI
 
 struct RegisterView: View {
     @EnvironmentObject var viewModel: UserViewModel
+    @State private var username: String = ""
+    @State private var email: String = ""
+    @State private var password: String = ""
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Register")
-                .font(.largeTitle.bold())
+            Image(systemName: "person.crop.circle.badge.plus")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 75, height: 75)
+                .foregroundStyle(.white)
 
-            TextField("Username", text: $viewModel.inputUsername)
+            Text("Register")
+                .font(.title.bold())
+                .foregroundStyle(.white)
+                .padding(.bottom, 10)
+
+            TextField("User name", text: $username)
+                .fontWeight(.bold)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
 
-            TextField("Email", text: $viewModel.email)
+            TextField("Email", text: $email)
+                .fontWeight(.bold)
                 .keyboardType(.emailAddress)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
@@ -30,13 +43,14 @@ struct RegisterView: View {
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
 
-            SecureField("Password", text: $viewModel.password)
+            SecureField("Password", text: $password)
+                .fontWeight(.bold)
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
 
             Button(action: {
-                Task { await viewModel.register() }
+                Task { await viewModel.register(username: username, email: email, password: password) }
             }) {
                 if viewModel.isLoading {
                     ProgressView()
@@ -44,17 +58,28 @@ struct RegisterView: View {
                         .padding()
                 } else {
                     Text("Sign Up")
-                        .bold()
+                        .font(.headline)
+                        .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.orange)
-                        .foregroundColor(.white)
+                        .background(Color.blue)
+                        .foregroundStyle(.white)
                         .cornerRadius(8)
                 }
             }
             .disabled(viewModel.isLoading)
+            .padding(.top, 10)
         }
         .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color("Background_Color"))
+        .ignoresSafeArea()
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded {
+                    hideKeyboard()
+                }
+        )
         .alert(isPresented: $viewModel.showAlert) {
             Alert(
                 title: Text("Error"),
@@ -63,4 +88,9 @@ struct RegisterView: View {
             )
         }
     }
+}
+
+#Preview {
+    RegisterView()
+        .environmentObject(UserViewModel())
 }

@@ -10,23 +10,34 @@ import SwiftUI
 
 struct ContentView: View {
     @AppStorage("username") private var username: String = ""
-    @StateObject private var userViewModel = UserViewModel()
+    @EnvironmentObject var userViewModel: UserViewModel
     @State private var showLogin = true
     @State private var authChecked = false
 
     var body: some View {
         NavigationStack {
             if !authChecked {
-                ProgressView("Checking session...")
-                    .onAppear {
-                        Task {
-                            await userViewModel.checkAuthAndFirestore()
-                            authChecked = true
-                        }
+                VStack(spacing: 10) {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .scaleEffect(1.3)
+
+                    Text("Checking session...")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color("Background_Color"))
+                .ignoresSafeArea()
+                .onAppear {
+                    Task {
+                        await userViewModel.checkAuthAndFirestore()
+                        authChecked = true
                     }
+                }
             } else {
                 if userViewModel.isUserLoggedIn && !username.isEmpty {
-                    RoomEntryView()
+                    RoomEntryCreateView()
                         .toolbar {
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 Button("Logout") {
@@ -43,6 +54,8 @@ struct ContentView: View {
                                         }
                                     }
                                 }
+                                .foregroundStyle(.blue)
+                                .fontWeight(.bold)
                             }
                         }
                 } else {
@@ -54,6 +67,8 @@ struct ContentView: View {
                                     Button("Register") {
                                         showLogin = false
                                     }
+                                    .foregroundStyle(.blue)
+                                    .fontWeight(.bold)
                                 }
                             }
                     } else {
@@ -64,6 +79,8 @@ struct ContentView: View {
                                     Button("Login") {
                                         showLogin = true
                                     }
+                                    .foregroundStyle(.blue)
+                                    .fontWeight(.bold)
                                 }
                             }
                     }

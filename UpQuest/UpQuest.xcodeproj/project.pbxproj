@@ -15,9 +15,22 @@
 		819835CD2E196671009B418E /* UpQuest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UpQuest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8100AB662E2D1ACC0023160F /* Exceptions for "UpQuest" folder in "UpQuest" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 819835CC2E196671009B418E /* UpQuest */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		819835CF2E196671009B418E /* UpQuest */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8100AB662E2D1ACC0023160F /* Exceptions for "UpQuest" folder in "UpQuest" target */,
+			);
 			path = UpQuest;
 			sourceTree = "<group>";
 		};
@@ -269,6 +282,7 @@
 				DEVELOPMENT_TEAM = FVGCA873Z7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = UpQuest/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = UpQuest;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -305,6 +319,7 @@
 				DEVELOPMENT_TEAM = FVGCA873Z7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = UpQuest/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = UpQuest;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
