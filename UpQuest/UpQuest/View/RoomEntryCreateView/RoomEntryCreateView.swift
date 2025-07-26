@@ -11,8 +11,8 @@ struct RoomEntryCreateView: View {
     @State private var roomCode: String = ""
     @State private var hideMyName: Bool = false
     @State private var isRoomValid: Bool = false
-    @State private var showRoomAlert: Bool = false
     @State private var isRoomAvailableToCreate: Bool = false
+    @State private var showRoomAlert: Bool = false
     @State private var path: [String] = []
 
     @StateObject private var roomViewModel = RoomViewModel()
@@ -27,14 +27,13 @@ struct RoomEntryCreateView: View {
             VStack {
                 HStack(spacing: 8) {
                     Spacer()
-
                     VStack(spacing: 5) {
                         Image(systemName: "person.circle")
                             .foregroundColor(.white)
                             .font(.system(size: 50))
                             .padding(.horizontal)
 
-                        Text("\(displayName)")
+                        Text(displayName)
                             .font(.title3)
                             .foregroundColor(.white)
                             .fontWeight(.bold)
@@ -53,10 +52,9 @@ struct RoomEntryCreateView: View {
                                 .fontWeight(.bold)
                         }
                     }
-
                     Spacer()
                 }
-                .padding(.top, 35)
+                .padding(.top, 45)
 
                 TextField("Room Code", text: $roomCode)
                     .fontWeight(.bold)
@@ -67,6 +65,21 @@ struct RoomEntryCreateView: View {
                     .cornerRadius(8)
                     .padding(.top, 10)
                     .padding(.horizontal, 20)
+                    .onChange(of: roomCode) { newCode in
+                        let trimmed = newCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if trimmed.isEmpty {
+                            isRoomValid = false
+                            isRoomAvailableToCreate = false
+                            return
+                        }
+
+                        roomViewModel.checkRoomExists(roomCode: trimmed) { exists in
+                            DispatchQueue.main.async {
+                                isRoomValid = exists
+                                isRoomAvailableToCreate = !exists
+                            }
+                        }
+                    }
 
                 Toggle(isOn: $hideMyName) {
                     Text("Hide my name (Anonymous)")
@@ -77,79 +90,51 @@ struct RoomEntryCreateView: View {
                 .padding()
                 .padding(.horizontal, 20)
 
-                Button(action: {
-                    roomViewModel.checkRoomExists(roomCode: roomCode) { exists in
-                        if exists {
-                            roomViewModel.addJoinedRoomToUser(roomCode, for: viewModel.username)
-                            path.append("room")
-                        }
-                    }
-                }) {
+                Button {
+                    guard isRoomValid else { return }
+                    roomViewModel.addJoinedRoomToUser(roomCode, for: viewModel.username)
+                    path.append("room")
+                } label: {
                     Text("Enter the Room")
                         .font(.headline)
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background((roomCode.isEmpty || !isRoomValid) ? Color.gray.opacity(0.3) : Color.blue)
-                        .foregroundStyle((roomCode.isEmpty || !isRoomValid) ? .gray : .white)
+                        .background(isRoomValid ? Color.blue : Color.gray.opacity(0.3))
+                        .foregroundStyle(isRoomValid ? .white : .gray)
                         .cornerRadius(8)
                 }
-                .disabled(roomCode.isEmpty || !isRoomValid)
+                .disabled(!isRoomValid)
                 .padding(.bottom, 10)
                 .padding(.horizontal, 20)
-                .onChange(of: roomCode) { newCode in
-                    if newCode.isEmpty {
-                        isRoomValid = false
-                    } else {
-                        roomViewModel.checkRoomExists(roomCode: newCode) { exists in
-                            DispatchQueue.main.async {
-                                isRoomValid = exists
-                            }
-                        }
-                    }
-                }
 
-                Button(action: {
-                    roomViewModel.checkRoomExists(roomCode: roomCode) { exists in
-                        if !exists {
-                            roomViewModel.createRoom(roomCode: roomCode, adminId: viewModel.username) { success in
-                                if success {
-                                    roomViewModel.addCreatedRoomToUser(roomCode, for: viewModel.username)
-                                    DispatchQueue.main.async {
-                                        path.append("room")
-                                    }
-                                }
+                Button {
+                    guard isRoomAvailableToCreate else { return }
+                    roomViewModel.createRoom(roomCode: roomCode, adminId: viewModel.username) { success in
+                        if success {
+                            roomViewModel.addCreatedRoomToUser(roomCode, for: viewModel.username)
+                            DispatchQueue.main.async {
+                                path.append("room")
                             }
                         }
                     }
-                }) {
+                } label: {
                     Text("Create the Room")
                         .font(.headline)
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background((roomCode.isEmpty || !isRoomAvailableToCreate) ? Color.gray.opacity(0.3) : Color.purple)
-                        .foregroundStyle((roomCode.isEmpty || !isRoomAvailableToCreate) ? .gray : .white)
+                        .background(isRoomAvailableToCreate ? Color.purple : Color.gray.opacity(0.3))
+                        .foregroundStyle(isRoomAvailableToCreate ? .white : .gray)
                         .cornerRadius(8)
                 }
-                .disabled(roomCode.isEmpty || !isRoomAvailableToCreate)
+                .disabled(!isRoomAvailableToCreate)
                 .padding(.bottom, 10)
                 .padding(.horizontal, 20)
-                .onChange(of: roomCode) { newCode in
-                    if newCode.isEmpty {
-                        isRoomAvailableToCreate = false
-                    } else {
-                        roomViewModel.checkRoomExists(roomCode: newCode) { exists in
-                            DispatchQueue.main.async {
-                                isRoomAvailableToCreate = !exists
-                            }
-                        }
-                    }
-                }
 
                 VStack(spacing: 25) {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
+                        HStack(spacing: 20) {
                             JoinedRoomsView(
                                 roomViewModel: roomViewModel,
                                 onRoomSelected: { code in
@@ -165,7 +150,7 @@ struct RoomEntryCreateView: View {
                                 },
                                 onRoomDeleted: { code in
                                     roomViewModel.removeJoinedRoomFromUser(code, for: viewModel.username)
-                                    roomViewModel.joinedRooms.removeAll { $0 == code }
+                                    roomViewModel.joinedRooms.removeAll { $0.id == code }
                                 }
                             )
                             .frame(width: 300, height: 270)
@@ -217,7 +202,7 @@ struct RoomEntryCreateView: View {
             }
             .alert(isPresented: $showRoomAlert) {
                 Alert(
-                    title: Text("The selected room was deleted."),
+                    title: Text("Room deleted"),
                     message: Text(viewModel.alertMessage),
                     dismissButton: .default(Text("OK"))
                 )
@@ -234,11 +219,13 @@ struct RoomEntryCreateView: View {
 }
 
 #Preview {
-    let vm = UserViewModel()
-    vm.username = "enes"
-    vm.emailStorage = "enes@example.com"
-    vm.createdAt = Date(timeIntervalSince1970: 1688000000)
-
-    return RoomEntryCreateView()
-        .environmentObject(vm)
+    RoomEntryCreateView()
+        .environmentObject({
+            let vm = UserViewModel()
+            vm.usernameStorage = "enes"
+            vm.emailStorage = "enes@example.com"
+            vm.createdAtStorage = 1688000000
+            vm.isUserLoggedIn = true
+            return vm
+        }())
 }

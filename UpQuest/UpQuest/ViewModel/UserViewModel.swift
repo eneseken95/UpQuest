@@ -11,7 +11,7 @@ import SwiftUI
 
 @MainActor
 class UserViewModel: ObservableObject {
-    @AppStorage("username") var username: String = ""
+    @AppStorage("username") var usernameStorage: String = ""
     @AppStorage("createdAt") var createdAtStorage: Double?
     @AppStorage("email") var emailStorage: String?
 
@@ -19,9 +19,18 @@ class UserViewModel: ObservableObject {
     @Published var alertMessage = ""
     @Published var isLoading = false
     @Published var isUserLoggedIn = false
-    @Published var createdAt: Date? = nil
+    @Published var currentUser: User? = nil
 
     private let db = Firestore.firestore()
+
+    var username: String {
+        usernameStorage
+    }
+
+    var createdAt: Date? {
+        guard let ts = createdAtStorage else { return nil }
+        return Date(timeIntervalSince1970: ts)
+    }
 
     func register(username: String, email: String, password: String) async {
         let usernameLower = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -64,16 +73,16 @@ class UserViewModel: ObservableObject {
 
             let result = try await Auth.auth().createUser(withEmail: emailTrimmed, password: passwordTrimmed)
 
-            try await db.collection("users").document(usernameLower).setData([
-                "username": usernameLower,
-                "email": emailTrimmed,
-                "uid": result.user.uid,
-                "createdAt": Timestamp(date: Date()),
-            ])
+            let newUser = User(username: usernameLower, email: emailTrimmed, uid: result.user.uid, createdAt: Date())
 
-            self.username = usernameLower
+            try await db.collection("users").document(usernameLower).setData(newUser.toDictionary())
+
+            currentUser = newUser
+            usernameStorage = usernameLower
             emailStorage = emailTrimmed
+            createdAtStorage = newUser.createdAt.timeIntervalSince1970
             isUserLoggedIn = true
+
         } catch {
             alertMessage = error.localizedDescription
             showAlert = true
@@ -110,8 +119,15 @@ class UserViewModel: ObservableObject {
             }
 
             _ = try await Auth.auth().signIn(withEmail: email, password: passwordTrimmed)
-            self.username = usernameLower
-            isUserLoggedIn = true
+
+            if let userModel = User(dictionary: data) {
+                currentUser = userModel
+                usernameStorage = userModel.username
+                emailStorage = userModel.email
+                createdAtStorage = userModel.createdAt.timeIntervalSince1970
+                isUserLoggedIn = true
+            }
+
             await checkAuthAndFirestore()
 
         } catch {
@@ -125,10 +141,10 @@ class UserViewModel: ObservableObject {
     func checkAuthAndFirestore() async {
         guard let user = Auth.auth().currentUser else {
             isUserLoggedIn = false
-            username = ""
-            createdAt = nil
-            createdAtStorage = nil
+            currentUser = nil
+            usernameStorage = ""
             emailStorage = ""
+            createdAtStorage = nil
             return
         }
 
@@ -138,35 +154,27 @@ class UserViewModel: ObservableObject {
                 .getDocuments()
 
             if let doc = snapshot.documents.first,
-               let fetchedUsername = doc.data()["username"] as? String {
-                username = fetchedUsername
+               let userModel = User(dictionary: doc.data()) {
+                currentUser = userModel
+                usernameStorage = userModel.username
+                emailStorage = userModel.email
+                createdAtStorage = userModel.createdAt.timeIntervalSince1970
                 isUserLoggedIn = true
-
-                if let fetchedEmail = doc.data()["email"] as? String {
-                    emailStorage = fetchedEmail
-                }
-
-                if let timestamp = doc.data()["createdAt"] as? Timestamp {
-                    let date = timestamp.dateValue()
-                    createdAt = date
-                    createdAtStorage = date.timeIntervalSince1970
-                }
-
             } else {
                 try Auth.auth().signOut()
                 isUserLoggedIn = false
-                username = ""
-                createdAt = nil
-                createdAtStorage = nil
+                currentUser = nil
+                usernameStorage = ""
                 emailStorage = ""
+                createdAtStorage = nil
             }
         } catch {
             print("Auth check error: \(error.localizedDescription)")
             isUserLoggedIn = false
-            username = ""
-            createdAt = nil
-            createdAtStorage = nil
+            currentUser = nil
+            usernameStorage = ""
             emailStorage = ""
+            createdAtStorage = nil
         }
     }
 }

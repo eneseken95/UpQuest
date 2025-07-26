@@ -20,19 +20,26 @@ struct JoinedRoomsView: View {
                 .foregroundColor(.white)
                 .padding(.top, 5)
 
-            if roomViewModel.joinedRooms.isEmpty {
+            if roomViewModel.isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .scaleEffect(1.3)
+                    .padding(.top, 10)
+
+            } else if roomViewModel.joinedRooms.isEmpty {
                 Text("You have not joined the room yet.")
                     .foregroundColor(.gray)
                     .fontWeight(.bold)
                     .padding(.top, 10)
+
             } else {
                 ScrollView {
-                    ForEach(roomViewModel.joinedRooms, id: \.self) { room in
+                    ForEach(roomViewModel.joinedRooms, id: \.id) { room in
                         HStack {
                             Button(action: {
-                                onRoomSelected(room)
+                                onRoomSelected(room.id)
                             }) {
-                                Text(room)
+                                Text(room.id)
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .fontWeight(.bold)
@@ -41,7 +48,7 @@ struct JoinedRoomsView: View {
                             Spacer()
 
                             Button(action: {
-                                onRoomDeleted(room)
+                                onRoomDeleted(room.id)
                             }) {
                                 Image(systemName: "trash")
                                     .foregroundColor(.red)
@@ -50,6 +57,7 @@ struct JoinedRoomsView: View {
                         .padding()
                         .background(Color.white.opacity(0.1))
                         .cornerRadius(8)
+                        .padding(.horizontal, 16)
                     }
                 }
                 .scrollIndicators(.hidden)
@@ -57,9 +65,9 @@ struct JoinedRoomsView: View {
                 .padding(.top, 10)
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding()
+        .frame(width: 300, height: 270)
         .background(Color.black.opacity(0.3))
-        .cornerRadius(12)
+        .cornerRadius(10)
+        .padding()
     }
 }
