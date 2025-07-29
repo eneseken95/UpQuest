@@ -63,6 +63,10 @@ struct RoomEntryCreateView: View {
                     .padding()
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(white: 0.9), lineWidth: 1)
+                    )
                     .padding(.top, 10)
                     .padding(.horizontal, 20)
                     .onChange(of: roomCode) { newCode in
@@ -222,8 +226,8 @@ struct RoomEntryCreateView: View {
     RoomEntryCreateView()
         .environmentObject({
             let vm = UserViewModel()
-            vm.usernameStorage = "enes"
-            vm.emailStorage = "enes@example.com"
+            vm.usernameStorage = "eneseken5"
+            vm.emailStorage = "eneseken5@gmail.com"
             vm.createdAtStorage = 1688000000
             vm.isUserLoggedIn = true
             return vm

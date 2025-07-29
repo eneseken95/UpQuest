@@ -18,7 +18,7 @@ class RoomViewModel: ObservableObject {
         let ref = db.collection("rooms").document(roomCode)
         let room = Room(id: roomCode, adminId: adminId, createdAt: Date())
 
-        ref.setData(room.toDictionary) { error in
+        ref.setData(room.toDictionary()) { error in
             if let error = error {
                 print("Room could not be created: \(error.localizedDescription)")
                 completion(false)

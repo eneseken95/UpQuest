@@ -40,11 +40,18 @@ struct CreatedRoomsView: View {
                             Button(action: {
                                 onRoomSelected(room.id)
                             }) {
-                                Text(room.id)
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .fontWeight(.bold)
+                                VStack(alignment: .leading) {
+                                    Text(room.id)
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .fontWeight(.bold)
+
+                                    Text("Created at: \(dateFormatter.string(from: room.createdAt))")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
                             }
+                            .frame(height: 25)
 
                             Spacer()
 
@@ -58,7 +65,12 @@ struct CreatedRoomsView: View {
                         .padding()
                         .background(Color.white.opacity(0.1))
                         .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(white: 0.9), lineWidth: 1)
+                        )
                         .padding(.horizontal, 16)
+                        .padding(.vertical, 2)
                     }
                 }
                 .scrollIndicators(.hidden)
@@ -67,8 +79,19 @@ struct CreatedRoomsView: View {
             }
         }
         .frame(width: 300, height: 270)
-        .background(Color.black.opacity(0.3))
+        .background(Color("Keyboard_Background_Color"))
         .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(white: 0.9), lineWidth: 1)
+        )
         .padding()
+    }
+
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
     }
 }

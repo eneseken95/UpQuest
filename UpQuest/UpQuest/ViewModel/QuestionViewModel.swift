@@ -42,8 +42,9 @@ class QuestionViewModel: ObservableObject {
             .collection("questions")
             .addSnapshotListener { snapshot, _ in
                 guard let documents = snapshot?.documents else { return }
+
                 self.questions = documents.compactMap { doc in
-                    try? doc.data(as: Question.self)
+                    Question(dictionary: doc.data(), documentId: doc.documentID)
                 }
             }
     }
@@ -53,16 +54,20 @@ class QuestionViewModel: ObservableObject {
         guard !trimmedQuestion.isEmpty else { return }
 
         let sender = hideMyName ? "Anonim" : username
-        let question = Question(content: trimmedQuestion, voteCount: 0, isAnswered: false, senderName: sender)
-        do {
-            _ = try db.collection("rooms")
-                .document(roomCode)
-                .collection("questions")
-                .addDocument(from: question)
-            newQuestion = ""
-        } catch {
-            print("Error adding question: \(error.localizedDescription)")
-        }
+        let question = Question(content: trimmedQuestion, senderName: sender)
+
+        db.collection("rooms")
+            .document(roomCode)
+            .collection("questions")
+            .addDocument(data: question.toDictionary()) { error in
+                if let error = error {
+                    print("Error adding question: \(error.localizedDescription)")
+                } else {
+                    DispatchQueue.main.async {
+                        self.newQuestion = ""
+                    }
+                }
+            }
     }
 
     func vote(for question: Question, username: String) {

@@ -44,6 +44,7 @@ struct JoinedRoomsView: View {
                                     .foregroundColor(.white)
                                     .fontWeight(.bold)
                             }
+                            .frame(height: 25)
 
                             Spacer()
 
@@ -57,7 +58,12 @@ struct JoinedRoomsView: View {
                         .padding()
                         .background(Color.white.opacity(0.1))
                         .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(white: 0.9), lineWidth: 1)
+                        )
                         .padding(.horizontal, 16)
+                        .padding(.vertical, 2)
                     }
                 }
                 .scrollIndicators(.hidden)
@@ -66,8 +72,12 @@ struct JoinedRoomsView: View {
             }
         }
         .frame(width: 300, height: 270)
-        .background(Color.black.opacity(0.3))
+        .background(Color("Keyboard_Background_Color"))
         .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(white: 0.9), lineWidth: 1)
+        )
         .padding()
     }
 }

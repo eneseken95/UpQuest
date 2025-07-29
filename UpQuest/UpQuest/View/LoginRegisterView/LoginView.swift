@@ -32,12 +32,20 @@ struct LoginView: View {
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(white: 0.9), lineWidth: 1)
+                )
 
             SecureField("Password", text: $password)
                 .fontWeight(.bold)
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(white: 0.9), lineWidth: 1)
+                )
 
             Button(action: {
                 Task { await viewModel.login(username: username, password: password) }

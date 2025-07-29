@@ -13,6 +13,7 @@ struct QuestionListView: View {
     @AppStorage("username") private var username: String = ""
     @State private var answeringQuestionId: String? = nil
     @State private var answerText: String = ""
+    @FocusState private var isAnswerFieldFocused: Bool
 
     init(roomCode: String, hideMyName: Bool) {
         self.roomCode = roomCode
@@ -29,29 +30,64 @@ struct QuestionListView: View {
                                 .foregroundColor(.white)
                                 .font(.title)
 
-                            Text("\(question.senderName)\(question.senderName == viewModel.adminId ? " (Admin)" : "")")
-                                .font(.title3)
-                                .foregroundStyle(.white)
-                                .fontWeight(.bold)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(question.senderName)")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .fontWeight(.bold)
+
+                                Text(question.senderName == viewModel.adminId ? "Admin" : "Member")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
 
                             Spacer()
+
+                            if question.isAnswered {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                    .font(.title3)
+                            } else {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(Color.white.opacity(0.5))
+                                    .font(.title3)
+                            }
                         }
+                        .padding(.top, 10)
+
+                        Divider()
+                            .frame(height: 0.5)
+                            .background(Color.white.opacity(0.5))
+                            .padding(.vertical, 2)
 
                         Text(question.content)
-                            .font(.headline)
+                            .font(.subheadline)
                             .foregroundStyle(.white)
-                            .padding(.top, 10)
+                            .padding(.top, 5)
+                            .padding(.bottom, 5)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         if let answer = question.answer, !answer.isEmpty {
-                            Text("- Admin: \(answer)")
-                                .font(.headline)
-                                .foregroundStyle(.green)
-                        }
+                            HStack(alignment: .top, spacing: 6) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(answer)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.orange)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(.leading, 8)
+                                .overlay(
+                                    Rectangle()
+                                        .frame(width: 3)
+                                        .foregroundColor(.green),
+                                    alignment: .leading
+                                )
 
-                        if question.isAnswered {
-                            Text("Answered")
-                                .font(.headline)
-                                .foregroundStyle(.white)
+                                Spacer()
+                            }
+                            .padding(.bottom, 10)
                         }
 
                         HStack {
@@ -60,12 +96,13 @@ struct QuestionListView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "hand.thumbsup")
-                                        .font(.title3)
+                                        .font(.subheadline)
                                         .foregroundStyle(.white)
 
                                     Text("\(question.voteCount)")
-                                        .font(.headline)
+                                        .font(.subheadline)
                                         .foregroundStyle(.white)
+                                        .fontWeight(.bold)
                                 }
                             }
                             .buttonStyle(.bordered)
@@ -73,18 +110,23 @@ struct QuestionListView: View {
 
                             if username == viewModel.adminId,
                                let topQuestion = viewModel.questions.sorted(by: { $0.voteCount > $1.voteCount }).first,
-                               question.id == topQuestion.id {
+                               question.id == topQuestion.id,
+                               !question.isAnswered {
                                 Button(action: {
                                     if answeringQuestionId == question.id {
                                         answeringQuestionId = nil
                                         answerText = ""
+                                        isAnswerFieldFocused = false
                                     } else {
                                         answeringQuestionId = question.id
                                         answerText = question.answer ?? ""
+                                        DispatchQueue.main.asyncAfter(deadline: .now()) {
+                                            isAnswerFieldFocused = true
+                                        }
                                     }
                                 }) {
                                     Image(systemName: "bubble.left.and.bubble.right")
-                                        .font(.title3)
+                                        .font(.subheadline)
                                         .foregroundStyle(.white)
                                 }
                                 .buttonStyle(.bordered)
@@ -96,41 +138,36 @@ struct QuestionListView: View {
                                     viewModel.deleteQuestion(question)
                                 }) {
                                     Image(systemName: "trash")
-                                        .font(.title3)
+                                        .font(.subheadline)
                                         .foregroundStyle(.white)
                                 }
                                 .buttonStyle(.bordered)
                                 .cornerRadius(20)
                             }
                         }
-
-                        if answeringQuestionId == question.id && username == viewModel.adminId {
-                            VStack(alignment: .leading, spacing: 8) {
-                                TextField("Your answer", text: $answerText)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .submitLabel(.done)
-                                    .onSubmit {
-                                        saveAnswer(for: question)
-                                    }
-                                HStack {
-                                    Spacer()
-                                    Button(action: {
-                                        saveAnswer(for: question)
-                                    }) {
-                                        Label("Send", systemImage: "paperplane.fill")
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .disabled(answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                                    Spacer()
-                                }
-                                .padding(.top, 15)
-                            }
-                            .padding(.top, 8)
-                        }
+                        .padding(.bottom, 10)
                     }
                     .listRowSeparator(.hidden)
-                    Divider()
-                        .padding(.vertical, 8)
+                    .padding()
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.systemGray6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(white: 0.9), lineWidth: 1)
+                            )
+                            .padding(.vertical, 10)
+                    )
+                    .listRowInsets(EdgeInsets())
+                }
+            }
+            .padding(.top, -15)
+            .scrollContentBackground(.hidden)
+            .background(Color("Background_Color"))
+            .onChange(of: viewModel.questions.sorted(by: { $0.voteCount > $1.voteCount }).first) { newTopQuestion in
+                if answeringQuestionId != newTopQuestion?.id {
+                    answeringQuestionId = nil
+                    answerText = ""
                 }
             }
             .simultaneousGesture(
@@ -139,22 +176,178 @@ struct QuestionListView: View {
                         hideKeyboard()
                     }
             )
+            if answeringQuestionId == nil {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.3))
+                        .frame(height: 0.2)
+                        .edgesIgnoringSafeArea(.horizontal)
+                        .padding(.top, -8)
 
-            HStack {
-                TextField("Write a question", text: $viewModel.newQuestion)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    HStack {
+                        HStack(alignment: .bottom) {
+                            HStack(spacing: 8) {
+                                TextField("", text: $viewModel.newQuestion, axis: .vertical)
+                                    .placeholder(when: viewModel.newQuestion.isEmpty) {
+                                        Text("Write a question")
+                                            .font(.subheadline)
+                                            .foregroundColor(.white).opacity(0.5)
+                                    }
+                                    .padding(8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(
+                                                viewModel.newQuestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                                    ? Color.white.opacity(0.5)
+                                                    : Color.white,
+                                                lineWidth: 1
+                                            )
+                                    )
+                                    .foregroundColor(.white)
+                                    .lineLimit(...4)
+                            }
+                            .background(Color("Keyboard_Background_Color"))
+                            .cornerRadius(10)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 55)
+                        .background(Color("Keyboard_Background_Color"))
+                        .ignoresSafeArea()
 
-                Button("Send") {
-                    if !viewModel.newQuestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        viewModel.sendQuestion(username: username)
+                        Button(action: {
+                            if !viewModel.newQuestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                viewModel.sendQuestion(username: username)
+                            }
+
+                        }) {
+                            Image(systemName: "paperplane.fill")
+                                .font(.title2)
+                                .foregroundColor(
+                                    viewModel.newQuestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                        ? Color.white.opacity(0.5)
+                                        : Color.white
+                                )
+                        }
+                        .padding(8)
+                        .disabled(viewModel.newQuestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                    .padding(.leading, 17)
+                    .padding(.trailing, 14)
+                    .padding(.bottom, 10)
+                    .padding(.top, 3)
+                }
+            } else {
+                if let question = viewModel.questions.first(where: { $0.id == answeringQuestionId }),
+                   username == viewModel.adminId && !question.isAnswered {
+                    VStack {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.3))
+                            .frame(height: 0.2)
+                            .edgesIgnoringSafeArea(.horizontal)
+                            .padding(.top, -8)
+
+                        ZStack(alignment: .topTrailing) {
+                            HStack(alignment: .top, spacing: 6) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(question.senderName)")
+                                        .font(.headline)
+                                        .foregroundColor(.gray)
+
+                                    Text(question.content)
+                                        .font(.subheadline)
+                                        .foregroundColor(.white)
+                                        .truncationMode(.tail)
+                                        .lineLimit(nil)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(.leading, 8)
+                                .overlay(
+                                    Rectangle()
+                                        .frame(width: 3)
+                                        .foregroundColor(.green),
+                                    alignment: .leading
+                                )
+
+                                Spacer()
+                            }
+                            .padding(6)
+                            .background(Color.white.opacity(0.08))
+                            .cornerRadius(8)
+                            .padding(.leading, 14)
+                            .padding(.trailing, 14)
+
+                            Button(action: {
+                                isAnswerFieldFocused = false
+                                answeringQuestionId = nil
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .font(.headline)
+                            }
+                            .padding(.top, 6)
+                            .padding(.trailing, 20)
+                        }
+                        .padding(.bottom, 3)
+                        .padding(.top, 3)
+
+                        HStack {
+                            HStack(alignment: .bottom) {
+                                HStack(spacing: 8) {
+                                    TextField("", text: $answerText, axis: .vertical)
+                                        .focused($isAnswerFieldFocused)
+                                        .placeholder(when: answerText.isEmpty) {
+                                            Text("Your answer")
+                                                .font(.subheadline)
+                                                .foregroundColor(.white).opacity(0.5)
+                                        }
+                                        .padding(8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(
+                                                    answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                                        ? Color.white.opacity(0.5)
+                                                        : Color.white,
+                                                    lineWidth: 1
+                                                )
+                                        )
+                                        .foregroundColor(.white)
+                                        .lineLimit(...4)
+                                }
+                                .background(Color("Keyboard_Background_Color"))
+                                .cornerRadius(10)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 55)
+                            .background(Color("Keyboard_Background_Color"))
+                            .ignoresSafeArea()
+
+                            Button(action: {
+                                saveAnswer(for: question)
+
+                            }) {
+                                Image(systemName: "paperplane.fill")
+                                    .font(.title2)
+                                    .foregroundColor(
+                                        answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                            ? Color.white.opacity(0.5)
+                                            : Color.white
+                                    )
+                            }
+                            .padding(8)
+                            .disabled(answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                        .padding(.leading, 17)
+                        .padding(.trailing, 14)
+                        .padding(.bottom, 10)
+                        .padding(.top, 3)
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.newQuestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            .padding()
         }
-        .navigationTitle("Room: \(roomCode)")
+        .navigationTitle("\(roomCode)")
+        .toolbarBackground(Color("Keyboard_Background_Color"), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .background(Color("Keyboard_Background_Color"))
     }
 
     private func saveAnswer(for question: Question) {
@@ -164,6 +357,18 @@ struct QuestionListView: View {
     }
 }
 
+extension View {
+    func placeholder<Content: View>(
+        when shouldShow: Bool,
+        alignment: Alignment = .leading,
+        @ViewBuilder placeholder: () -> Content) -> some View {
+        ZStack(alignment: alignment) {
+            placeholder().opacity(shouldShow ? 1 : 0)
+            self
+        }
+    }
+}
+
 #Preview {
-    QuestionListView(roomCode: "Oda3", hideMyName: false)
+    QuestionListView(roomCode: "Oda90", hideMyName: false)
 }

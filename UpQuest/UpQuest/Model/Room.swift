@@ -29,7 +29,7 @@ struct Room: Identifiable, Codable {
         createdAt = timestamp.dateValue()
     }
 
-    var toDictionary: [String: Any] {
+    func toDictionary() -> [String: Any] {
         return [
             "adminId": adminId,
             "createdAt": Timestamp(date: createdAt),
