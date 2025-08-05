@@ -199,11 +199,13 @@ class ScannerViewController: UIViewController, AVCaptureVideoDataOutputSampleBuf
                 return
             }
             guard let observations = request.results as? [VNRecognizedTextObservation] else { return }
-            let texts = observations.compactMap { $0.topCandidates(1).first?.string }
-            if let firstValid = texts.first(where: { $0.count >= 4 && $0.count <= 10 }) {
+            let recognizedStrings = observations.compactMap { $0.topCandidates(1).first?.string }
+            let fullText = recognizedStrings.joined(separator: " ")
+
+            if fullText.count >= 4 && fullText.count <= 20 {
                 DispatchQueue.main.async {
                     self.stopScanning()
-                    self.completion?(.success(firstValid))
+                    self.completion?(.success(fullText))
                 }
             }
         }
