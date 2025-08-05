@@ -8,7 +8,7 @@
 import FirebaseFirestore
 
 class QuestionViewModel: ObservableObject {
-    @Published var questions: [Question] = []
+    @Published var questions: [QuestionModel] = []
     @Published var newQuestion: String = ""
     @Published var adminId: String = ""
 
@@ -44,7 +44,7 @@ class QuestionViewModel: ObservableObject {
                 guard let documents = snapshot?.documents else { return }
 
                 self.questions = documents.compactMap { doc in
-                    Question(dictionary: doc.data(), documentId: doc.documentID)
+                    QuestionModel(dictionary: doc.data(), documentId: doc.documentID)
                 }
             }
     }
@@ -54,7 +54,7 @@ class QuestionViewModel: ObservableObject {
         guard !trimmedQuestion.isEmpty else { return }
 
         let sender = hideMyName ? "Anonim" : username
-        let question = Question(content: trimmedQuestion, senderName: sender)
+        let question = QuestionModel(content: trimmedQuestion, senderName: sender)
 
         db.collection("rooms")
             .document(roomCode)
@@ -70,7 +70,7 @@ class QuestionViewModel: ObservableObject {
             }
     }
 
-    func vote(for question: Question, username: String) {
+    func vote(for question: QuestionModel, username: String) {
         guard let questionId = question.id else { return }
         let ref = db.collection("rooms")
             .document(roomCode)
@@ -99,12 +99,12 @@ class QuestionViewModel: ObservableObject {
         }
     }
 
-    func deleteQuestion(_ question: Question) {
+    func deleteQuestion(_ question: QuestionModel) {
         guard let questionId = question.id else { return }
         db.collection("rooms").document(roomCode).collection("questions").document(questionId).delete()
     }
 
-    func answerTopQuestion(question: Question, answer: String) {
+    func answerTopQuestion(question: QuestionModel, answer: String) {
         guard let questionId = question.id else { return }
 
         db.collection("rooms")

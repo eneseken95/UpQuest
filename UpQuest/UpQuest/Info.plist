@@ -6,8 +6,11 @@
     <array>
         <dict/>
     </array>
-    
+
     <key>UIUserInterfaceStyle</key>
     <string>Dark</string>
+
+    <key>NSCameraUsageDescription</key>
+    <string>We need access to your camera to scan room codes using text recognition.</string>
 </dict>
 </plist>

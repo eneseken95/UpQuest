@@ -1,5 +1,5 @@
 //
-//  User.swift
+//  UserModel.swift
 //  UpQuest
 //
 //  Created by Enes Eken on 26.07.2025.
@@ -7,7 +7,7 @@
 
 import FirebaseFirestore
 
-struct User: Identifiable, Codable {
+struct UserModel: Identifiable, Codable {
     var id: String { username }
     let username: String
     let email: String

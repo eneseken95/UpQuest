@@ -14,6 +14,7 @@ struct RoomEntryCreateView: View {
     @State private var isRoomAvailableToCreate: Bool = false
     @State private var showRoomAlert: Bool = false
     @State private var path: [String] = []
+    @State private var isShowingLiveScanner = false
 
     @StateObject private var roomViewModel = RoomViewModel()
     @EnvironmentObject var viewModel: UserViewModel
@@ -56,34 +57,51 @@ struct RoomEntryCreateView: View {
                 }
                 .padding(.top, 45)
 
-                TextField("Room Code", text: $roomCode)
-                    .fontWeight(.bold)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(white: 0.9), lineWidth: 1)
-                    )
-                    .padding(.top, 10)
-                    .padding(.horizontal, 20)
-                    .onChange(of: roomCode) { newCode in
-                        let trimmed = newCode.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if trimmed.isEmpty {
-                            isRoomValid = false
-                            isRoomAvailableToCreate = false
-                            return
-                        }
+                HStack {
+                    TextField("Room Code", text: $roomCode)
+                        .fontWeight(.bold)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(8)
+                        .overlay(
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.9), lineWidth: 1)
 
-                        roomViewModel.checkRoomExists(roomCode: trimmed) { exists in
-                            DispatchQueue.main.async {
-                                isRoomValid = exists
-                                isRoomAvailableToCreate = !exists
+                                HStack {
+                                    Spacer()
+                                    Button {
+                                        isShowingLiveScanner = true
+                                    } label: {
+                                        Image(systemName: "camera")
+                                            .font(.title2)
+                                            .foregroundColor(Color.white.opacity(0.9))
+                                            .padding(8)
+                                    }
+                                    .padding(.trailing, 8)
+                                }
+                            }
+                        )
+                        .onChange(of: roomCode) { newCode in
+                            let trimmed = newCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if trimmed.isEmpty {
+                                isRoomValid = false
+                                isRoomAvailableToCreate = false
+                                return
+                            }
+
+                            roomViewModel.checkRoomExists(roomCode: trimmed) { exists in
+                                DispatchQueue.main.async {
+                                    isRoomValid = exists
+                                    isRoomAvailableToCreate = !exists
+                                }
                             }
                         }
-                    }
+                }
+                .padding(.top, 10)
+                .padding(.horizontal, 20)
 
                 Toggle(isOn: $hideMyName) {
                     Text("Hide my name (Anonymous)")
@@ -199,6 +217,33 @@ struct RoomEntryCreateView: View {
                         hideKeyboard()
                     }
             )
+            .sheet(isPresented: $isShowingLiveScanner) {
+                LiveTextScannerView { result in
+                    switch result {
+                    case let .success(scannedText):
+                        let trimmedCode = scannedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        roomCode = trimmedCode
+
+                        roomViewModel.checkRoomExists(roomCode: trimmedCode) { exists in
+                            DispatchQueue.main.async {
+                                if exists {
+                                    isRoomValid = true
+                                    isRoomAvailableToCreate = false
+                                    roomViewModel.addJoinedRoomToUser(trimmedCode, for: viewModel.username)
+                                    path.append("room")
+                                } else {
+                                    isRoomValid = false
+                                    isRoomAvailableToCreate = false
+                                    showRoomAlert = true
+                                }
+                            }
+                        }
+
+                    case let .failure(error):
+                        print("\(error.localizedDescription)")
+                    }
+                }
+            }
             .onAppear {
                 roomCode = ""
                 roomViewModel.ensureUserDocumentExists(userId: viewModel.username)
@@ -206,9 +251,12 @@ struct RoomEntryCreateView: View {
             }
             .alert(isPresented: $showRoomAlert) {
                 Alert(
-                    title: Text("Room deleted"),
+                    title: Text("Room not found. It may not exist or was deleted."),
                     message: Text(viewModel.alertMessage),
-                    dismissButton: .default(Text("OK"))
+                    dismissButton: .default(Text("OK")) {
+                        roomCode = ""
+                        path.removeAll(where: { $0 == "room" })
+                    }
                 )
             }
             .navigationDestination(for: String.self) { value in
@@ -226,8 +274,8 @@ struct RoomEntryCreateView: View {
     RoomEntryCreateView()
         .environmentObject({
             let vm = UserViewModel()
-            vm.usernameStorage = "eneseken5"
-            vm.emailStorage = "eneseken5@gmail.com"
+            vm.usernameStorage = "eneseken"
+            vm.emailStorage = "eneseken@gmail.com"
             vm.createdAtStorage = 1688000000
             vm.isUserLoggedIn = true
             return vm

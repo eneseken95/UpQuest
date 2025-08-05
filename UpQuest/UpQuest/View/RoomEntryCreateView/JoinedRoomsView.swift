@@ -28,9 +28,10 @@ struct JoinedRoomsView: View {
 
             } else if roomViewModel.joinedRooms.isEmpty {
                 Text("You have not joined the room yet.")
+                    .font(.subheadline)
                     .foregroundColor(.gray)
                     .fontWeight(.bold)
-                    .padding(.top, 10)
+                    .padding(.top, 5)
 
             } else {
                 ScrollView {
@@ -80,4 +81,23 @@ struct JoinedRoomsView: View {
         )
         .padding()
     }
+}
+
+#Preview {
+    let mockViewModel = RoomViewModel()
+
+    mockViewModel.joinedRooms = [
+        RoomModel(id: "ABC123", adminId: "testuser", createdAt: Date()),
+        RoomModel(id: "XYZ789", adminId: "testuser", createdAt: Date().addingTimeInterval(-7200)),
+    ]
+
+    return JoinedRoomsView(
+        roomViewModel: mockViewModel,
+        onRoomSelected: { roomId in
+            print("Selected room: \(roomId)")
+        },
+        onRoomDeleted: { roomId in
+            print("Deleted room: \(roomId)")
+        }
+    )
 }

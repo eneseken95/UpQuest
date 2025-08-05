@@ -19,7 +19,7 @@ class UserViewModel: ObservableObject {
     @Published var alertMessage = ""
     @Published var isLoading = false
     @Published var isUserLoggedIn = false
-    @Published var currentUser: User? = nil
+    @Published var currentUser: UserModel? = nil
 
     private let db = Firestore.firestore()
 
@@ -73,7 +73,7 @@ class UserViewModel: ObservableObject {
 
             let result = try await Auth.auth().createUser(withEmail: emailTrimmed, password: passwordTrimmed)
 
-            let newUser = User(username: usernameLower, email: emailTrimmed, uid: result.user.uid, createdAt: Date())
+            let newUser = UserModel(username: usernameLower, email: emailTrimmed, uid: result.user.uid, createdAt: Date())
 
             try await db.collection("users").document(usernameLower).setData(newUser.toDictionary())
 
@@ -120,7 +120,7 @@ class UserViewModel: ObservableObject {
 
             _ = try await Auth.auth().signIn(withEmail: email, password: passwordTrimmed)
 
-            if let userModel = User(dictionary: data) {
+            if let userModel = UserModel(dictionary: data) {
                 currentUser = userModel
                 usernameStorage = userModel.username
                 emailStorage = userModel.email
@@ -154,7 +154,7 @@ class UserViewModel: ObservableObject {
                 .getDocuments()
 
             if let doc = snapshot.documents.first,
-               let userModel = User(dictionary: doc.data()) {
+               let userModel = UserModel(dictionary: doc.data()) {
                 currentUser = userModel
                 usernameStorage = userModel.username
                 emailStorage = userModel.email

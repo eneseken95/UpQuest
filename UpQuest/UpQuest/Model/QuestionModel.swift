@@ -1,5 +1,5 @@
 //
-//  Question.swift
+//  QuestionModel.swift
 //  UpQuest
 //
 //  Created by Enes Eken on 5.07.2025.
@@ -7,7 +7,7 @@
 
 import FirebaseFirestore
 
-struct Question: Identifiable, Codable, Equatable {
+struct QuestionModel: Identifiable, Codable, Equatable {
     var id: String?
     var content: String
     var voteCount: Int
@@ -57,7 +57,7 @@ struct Question: Identifiable, Codable, Equatable {
         return dict
     }
 
-    static func == (lhs: Question, rhs: Question) -> Bool {
+    static func == (lhs: QuestionModel, rhs: QuestionModel) -> Bool {
         lhs.id == rhs.id
     }
 }

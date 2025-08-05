@@ -10,13 +10,13 @@ import FirebaseFirestore
 class RoomViewModel: ObservableObject {
     private var db = Firestore.firestore()
 
-    @Published var joinedRooms: [Room] = []
-    @Published var createdRooms: [Room] = []
+    @Published var joinedRooms: [RoomModel] = []
+    @Published var createdRooms: [RoomModel] = []
     @Published var isLoading: Bool = false
 
     func createRoom(roomCode: String, adminId: String, completion: @escaping (Bool) -> Void) {
         let ref = db.collection("rooms").document(roomCode)
-        let room = Room(id: roomCode, adminId: adminId, createdAt: Date())
+        let room = RoomModel(id: roomCode, adminId: adminId, createdAt: Date())
 
         ref.setData(room.toDictionary()) { error in
             if let error = error {
@@ -80,6 +80,7 @@ class RoomViewModel: ObservableObject {
     func deleteCreatedRoomFromUser(roomCode: String, for userId: String, completion: @escaping (Bool, String?) -> Void) {
         let roomRef = db.collection("rooms").document(roomCode)
         let userRef = db.collection("users").document(userId)
+        let questionsRef = roomRef.collection("questions")
 
         roomRef.getDocument { snapshot, error in
             if let error = error {
@@ -93,28 +94,50 @@ class RoomViewModel: ObservableObject {
             }
 
             if let adminId = data["adminId"] as? String, adminId == userId {
-                roomRef.delete { error in
+                questionsRef.getDocuments { querySnapshot, error in
                     if let error = error {
-                        print("Error while deleting room: \(error.localizedDescription)")
-                        completion(false, "An error occurred while deleting the room.")
+                        print("Error fetching questions: \(error.localizedDescription)")
+                        completion(false, "Failed to fetch room questions.")
                         return
                     }
 
-                    userRef.updateData([
-                        "createdRooms": FieldValue.arrayRemove([roomCode]),
-                    ]) { error in
+                    let batch = self.db.batch()
+                    querySnapshot?.documents.forEach { document in
+                        batch.deleteDocument(document.reference)
+                    }
+
+                    batch.commit { error in
                         if let error = error {
-                            print("Could not delete room from user-createdRooms array: \(error.localizedDescription)")
-                            completion(false, "The room was deleted but the user record could not be updated.")
+                            print("Error deleting questions: \(error.localizedDescription)")
+                            completion(false, "Failed to delete room questions.")
                             return
                         }
 
-                        DispatchQueue.main.async {
-                            self.createdRooms.removeAll { $0.id == roomCode }
+                        roomRef.delete { error in
+                            if let error = error {
+                                print("Error while deleting room: \(error.localizedDescription)")
+                                completion(false, "An error occurred while deleting the room.")
+                                return
+                            }
+
+                            userRef.updateData([
+                                "createdRooms": FieldValue.arrayRemove([roomCode]),
+                            ]) { error in
+                                if let error = error {
+                                    print("Could not delete room from user-createdRooms array: \(error.localizedDescription)")
+                                    completion(false, "The room was deleted but the user record could not be updated.")
+                                    return
+                                }
+
+                                DispatchQueue.main.async {
+                                    self.createdRooms.removeAll { $0.id == roomCode }
+                                }
+                                completion(true, nil)
+                            }
                         }
-                        completion(true, nil)
                     }
                 }
+
             } else {
                 completion(false, "You do not have permission to delete this room.")
             }
@@ -148,16 +171,16 @@ class RoomViewModel: ObservableObject {
         }
     }
 
-    private func fetchRoomsByCodes(_ roomCodes: [String], completion: @escaping ([Room]) -> Void) {
+    private func fetchRoomsByCodes(_ roomCodes: [String], completion: @escaping ([RoomModel]) -> Void) {
         let group = DispatchGroup()
-        var fetchedRooms: [Room] = []
+        var fetchedRooms: [RoomModel] = []
 
         for code in roomCodes {
             group.enter()
             let ref = db.collection("rooms").document(code)
             ref.getDocument { snapshot, _ in
                 if let data = snapshot?.data(),
-                   let room = Room(document: data, documentId: code) {
+                   let room = RoomModel(document: data, documentId: code) {
                     fetchedRooms.append(room)
                 }
                 group.leave()

@@ -1,5 +1,5 @@
 //
-//  Room.swift
+//  RoomModel.swift
 //  UpQuest
 //
 //  Created by Enes Eken on 26.07.2025.
@@ -7,7 +7,7 @@
 
 import FirebaseFirestore
 
-struct Room: Identifiable, Codable {
+struct RoomModel: Identifiable, Codable {
     var id: String
     var adminId: String
     var createdAt: Date

@@ -82,8 +82,8 @@ struct RegisterView: View {
             .disabled(viewModel.isLoading)
             .padding(.top, 10)
         }
-        .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
         .background(Color("Background_Color"))
         .ignoresSafeArea()
         .simultaneousGesture(

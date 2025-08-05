@@ -29,9 +29,10 @@ struct CreatedRoomsView: View {
 
             } else if roomViewModel.createdRooms.isEmpty {
                 Text("You haven't created a room yet.")
+                    .font(.subheadline)
                     .foregroundColor(.gray)
                     .fontWeight(.bold)
-                    .padding(.top, 10)
+                    .padding(.top, 5)
 
             } else {
                 ScrollView {
@@ -94,4 +95,24 @@ struct CreatedRoomsView: View {
         formatter.timeStyle = .short
         return formatter
     }
+}
+
+#Preview {
+    let mockViewModel = RoomViewModel()
+
+    mockViewModel.createdRooms = [
+        RoomModel(id: "ABC123", adminId: "testuser", createdAt: Date()),
+        RoomModel(id: "XYZ789", adminId: "testuser", createdAt: Date().addingTimeInterval(-3600)),
+    ]
+
+    return CreatedRoomsView(
+        roomViewModel: mockViewModel,
+        username: "testuser",
+        onRoomSelected: { roomId in
+            print("Selected room: \(roomId)")
+        },
+        onRoomDeleted: { roomId in
+            print("Deleted room: \(roomId)")
+        }
+    )
 }

@@ -13,6 +13,7 @@ struct QuestionListView: View {
     @AppStorage("username") private var username: String = ""
     @State private var answeringQuestionId: String? = nil
     @State private var answerText: String = ""
+    @State private var editingAnswerQuestionId: String? = nil
     @FocusState private var isAnswerFieldFocused: Bool
 
     init(roomCode: String, hideMyName: Bool) {
@@ -62,7 +63,7 @@ struct QuestionListView: View {
 
                         Text(question.content)
                             .font(.subheadline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.cyan)
                             .padding(.top, 5)
                             .padding(.bottom, 5)
                             .lineLimit(nil)
@@ -133,12 +134,29 @@ struct QuestionListView: View {
                                 .cornerRadius(20)
                             }
 
-                            if username == viewModel.adminId {
+                            if (username == viewModel.adminId) || (question.senderName == username) {
                                 Button(action: {
                                     viewModel.deleteQuestion(question)
                                 }) {
                                     Image(systemName: "trash")
                                         .font(.subheadline)
+                                        .foregroundStyle(.white)
+                                }
+                                .buttonStyle(.bordered)
+                                .cornerRadius(20)
+                            }
+
+                            if username == viewModel.adminId,
+                               question.answer != nil {
+                                Button(action: {
+                                    editingAnswerQuestionId = question.id
+                                    answerText = question.answer ?? ""
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                        isAnswerFieldFocused = true
+                                    }
+                                }) {
+                                    Image(systemName: "pencil")
+                                        .font(.headline)
                                         .foregroundStyle(.white)
                                 }
                                 .buttonStyle(.bordered)
@@ -167,16 +185,25 @@ struct QuestionListView: View {
             .onChange(of: viewModel.questions.sorted(by: { $0.voteCount > $1.voteCount }).first) { newTopQuestion in
                 if answeringQuestionId != newTopQuestion?.id {
                     answeringQuestionId = nil
-                    answerText = ""
                 }
             }
+            .onChange(of: viewModel.questions) { updatedQuestions in
+                if let editingId = editingAnswerQuestionId,
+                   !updatedQuestions.contains(where: { $0.id == editingId }) {
+                    editingAnswerQuestionId = nil
+                    answerText = ""
+                    isAnswerFieldFocused = false
+                }
+            }
+
             .simultaneousGesture(
                 TapGesture()
                     .onEnded {
                         hideKeyboard()
                     }
             )
-            if answeringQuestionId == nil {
+
+            if answeringQuestionId == nil && editingAnswerQuestionId == nil {
                 VStack(spacing: 0) {
                     Rectangle()
                         .fill(Color.white.opacity(0.3))
@@ -191,7 +218,7 @@ struct QuestionListView: View {
                                     .placeholder(when: viewModel.newQuestion.isEmpty) {
                                         Text("Write a question")
                                             .font(.subheadline)
-                                            .foregroundColor(.white).opacity(0.5)
+                                            .foregroundColor(.white.opacity(0.5))
                                     }
                                     .padding(8)
                                     .background(
@@ -218,7 +245,6 @@ struct QuestionListView: View {
                             if !viewModel.newQuestion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                 viewModel.sendQuestion(username: username)
                             }
-
                         }) {
                             Image(systemName: "paperplane.fill")
                                 .font(.title2)
@@ -236,124 +262,234 @@ struct QuestionListView: View {
                     .padding(.bottom, 10)
                     .padding(.top, 3)
                 }
-            } else {
-                if let question = viewModel.questions.first(where: { $0.id == answeringQuestionId }),
-                   username == viewModel.adminId && !question.isAnswered {
-                    VStack {
-                        Rectangle()
-                            .fill(Color.white.opacity(0.3))
-                            .frame(height: 0.2)
-                            .edgesIgnoringSafeArea(.horizontal)
-                            .padding(.top, -8)
+            } else if let question = viewModel.questions.first(where: { $0.id == answeringQuestionId }),
+                      username == viewModel.adminId && !question.isAnswered {
+                VStack {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.3))
+                        .frame(height: 0.2)
+                        .edgesIgnoringSafeArea(.horizontal)
+                        .padding(.top, -8)
 
-                        ZStack(alignment: .topTrailing) {
-                            HStack(alignment: .top, spacing: 6) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("\(question.senderName)")
-                                        .font(.headline)
-                                        .foregroundColor(.gray)
-
-                                    Text(question.content)
-                                        .font(.subheadline)
-                                        .foregroundColor(.white)
-                                        .truncationMode(.tail)
-                                        .lineLimit(nil)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .padding(.leading, 8)
-                                .overlay(
-                                    Rectangle()
-                                        .frame(width: 3)
-                                        .foregroundColor(.green),
-                                    alignment: .leading
-                                )
-
-                                Spacer()
-                            }
-                            .padding(6)
-                            .background(Color.white.opacity(0.08))
-                            .cornerRadius(8)
-                            .padding(.leading, 14)
-                            .padding(.trailing, 14)
-
-                            Button(action: {
-                                isAnswerFieldFocused = false
-                                answeringQuestionId = nil
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.white.opacity(0.6))
+                    ZStack(alignment: .topTrailing) {
+                        HStack(alignment: .top, spacing: 6) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(question.senderName)")
                                     .font(.headline)
+                                    .foregroundColor(.gray)
+
+                                Text(question.content)
+                                    .font(.subheadline)
+                                    .foregroundColor(.cyan)
+                                    .truncationMode(.tail)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            .padding(.top, 6)
-                            .padding(.trailing, 20)
+                            .padding(.leading, 8)
+                            .overlay(
+                                Rectangle()
+                                    .frame(width: 3)
+                                    .foregroundColor(.white),
+                                alignment: .leading
+                            )
+
+                            Spacer()
                         }
-                        .padding(.bottom, 3)
-                        .padding(.top, 3)
+                        .padding(6)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(8)
+                        .padding(.horizontal, 14)
 
-                        HStack {
-                            HStack(alignment: .bottom) {
-                                HStack(spacing: 8) {
-                                    TextField("", text: $answerText, axis: .vertical)
-                                        .focused($isAnswerFieldFocused)
-                                        .placeholder(when: answerText.isEmpty) {
-                                            Text("Your answer")
-                                                .font(.subheadline)
-                                                .foregroundColor(.white).opacity(0.5)
-                                        }
-                                        .padding(8)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .stroke(
-                                                    answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                                        ? Color.white.opacity(0.5)
-                                                        : Color.white,
-                                                    lineWidth: 1
-                                                )
-                                        )
-                                        .foregroundColor(.white)
-                                        .lineLimit(...4)
-                                }
-                                .background(Color("Keyboard_Background_Color"))
-                                .cornerRadius(10)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: 55)
-                            .background(Color("Keyboard_Background_Color"))
-                            .ignoresSafeArea()
-
-                            Button(action: {
-                                saveAnswer(for: question)
-
-                            }) {
-                                Image(systemName: "paperplane.fill")
-                                    .font(.title2)
-                                    .foregroundColor(
-                                        answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                            ? Color.white.opacity(0.5)
-                                            : Color.white
-                                    )
-                            }
-                            .padding(8)
-                            .disabled(answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        Button(action: {
+                            isAnswerFieldFocused = false
+                            answeringQuestionId = nil
+                            answerText = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.white.opacity(0.6))
+                                .font(.headline)
                         }
-                        .padding(.leading, 17)
-                        .padding(.trailing, 14)
-                        .padding(.bottom, 10)
-                        .padding(.top, 3)
+                        .padding(.top, 6)
+                        .padding(.trailing, 20)
                     }
+                    .padding(.vertical, 3)
+
+                    HStack {
+                        HStack(alignment: .bottom) {
+                            HStack(spacing: 8) {
+                                TextField("", text: $answerText, axis: .vertical)
+                                    .focused($isAnswerFieldFocused)
+                                    .placeholder(when: answerText.isEmpty) {
+                                        Text("Your answer")
+                                            .font(.subheadline)
+                                            .foregroundColor(.white.opacity(0.5))
+                                    }
+                                    .padding(8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(
+                                                answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                                    ? Color.white.opacity(0.5)
+                                                    : Color.white,
+                                                lineWidth: 1
+                                            )
+                                    )
+                                    .foregroundColor(.white)
+                                    .lineLimit(...4)
+                            }
+                            .background(Color("Keyboard_Background_Color"))
+                            .cornerRadius(10)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 55)
+                        .background(Color("Keyboard_Background_Color"))
+                        .ignoresSafeArea()
+
+                        Button(action: {
+                            saveAnswer(for: question)
+                        }) {
+                            Image(systemName: "paperplane.fill")
+                                .font(.title2)
+                                .foregroundColor(
+                                    answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                        ? Color.white.opacity(0.5)
+                                        : Color.white
+                                )
+                        }
+                        .padding(8)
+                        .disabled(answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                    .padding(.horizontal, 17)
+                    .padding(.vertical, 13)
+                }
+            } else if let question = viewModel.questions.first(where: { $0.id == editingAnswerQuestionId }),
+                      username == viewModel.adminId,
+                      question.answer != nil {
+                VStack {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.3))
+                        .frame(height: 0.2)
+                        .edgesIgnoringSafeArea(.horizontal)
+                        .padding(.top, -8)
+
+                    ZStack(alignment: .topTrailing) {
+                        HStack(alignment: .top, spacing: 6) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(question.answer ?? "")
+                                    .font(.subheadline)
+                                    .foregroundColor(.orange)
+                                    .truncationMode(.tail)
+                                    .lineLimit(nil)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(.leading, 8)
+                            .overlay(
+                                Rectangle()
+                                    .frame(width: 3)
+                                    .foregroundColor(.green),
+                                alignment: .leading
+                            )
+
+                            Spacer()
+                        }
+                        .padding(6)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(8)
+                        .padding(.horizontal, 14)
+
+                        Button(action: {
+                            isAnswerFieldFocused = false
+                            editingAnswerQuestionId = nil
+                            answerText = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.white.opacity(0.6))
+                                .font(.headline)
+                        }
+                        .padding(.top, 4)
+                        .padding(.trailing, 18)
+                    }
+                    .padding(.vertical, 3)
+
+                    HStack {
+                        HStack(alignment: .bottom) {
+                            HStack(spacing: 8) {
+                                TextField("", text: $answerText, axis: .vertical)
+                                    .focused($isAnswerFieldFocused)
+                                    .placeholder(when: answerText.isEmpty) {
+                                        Text("Edit Your Answer")
+                                            .font(.subheadline)
+                                            .foregroundColor(.white.opacity(0.5))
+                                    }
+                                    .padding(8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(
+                                                answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                                    ? Color.white.opacity(0.5)
+                                                    : Color.white,
+                                                lineWidth: 1
+                                            )
+                                    )
+                                    .foregroundColor(.white)
+                                    .lineLimit(...4)
+                            }
+                            .background(Color("Keyboard_Background_Color"))
+                            .cornerRadius(10)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 55)
+                        .background(Color("Keyboard_Background_Color"))
+                        .ignoresSafeArea()
+
+                        Button(action: {
+                            saveAnswer(for: question)
+                            isAnswerFieldFocused = false
+                            editingAnswerQuestionId = nil
+                        }) {
+                            Image(systemName: "paperplane.fill")
+                                .font(.title2)
+                                .foregroundColor(
+                                    answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                        ? Color.white.opacity(0.5)
+                                        : Color.white
+                                )
+                        }
+                        .padding(8)
+                        .disabled(answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                    .padding(.horizontal, 17)
+                    .padding(.vertical, 13)
                 }
             }
         }
-        .navigationTitle("\(roomCode)")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color("Keyboard_Background_Color"), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .background(Color("Keyboard_Background_Color"))
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(roomCode)
+                    .font(.title3)
+                    .foregroundStyle(Color.white)
+                    .fontWeight(.bold)
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                NavigationLink(destination: RoomInformationView(roomCode: roomCode)) {
+                    Image(systemName: "info.circle")
+                        .font(.headline)
+                        .foregroundColor(Color.purple)
+                }
+            }
+        }
     }
 
-    private func saveAnswer(for question: Question) {
+    private func saveAnswer(for question: QuestionModel) {
         viewModel.answerTopQuestion(question: question, answer: answerText)
         answerText = ""
         answeringQuestionId = nil
+        editingAnswerQuestionId = nil
     }
 }
 
