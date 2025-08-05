@@ -13,6 +13,7 @@ struct RoomEntryCreateView: View {
     @State private var isRoomValid: Bool = false
     @State private var isRoomAvailableToCreate: Bool = false
     @State private var showRoomAlert: Bool = false
+    @State private var showLengthAlert: Bool = false
     @State private var path: [String] = []
     @State private var isShowingLiveScanner = false
 
@@ -131,6 +132,13 @@ struct RoomEntryCreateView: View {
                 .padding(.horizontal, 20)
 
                 Button {
+                    let trimmedCode = roomCode.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                    if trimmedCode.count > 10 {
+                        showLengthAlert = true
+                        return
+                    }
+
                     guard isRoomAvailableToCreate else { return }
                     roomViewModel.createRoom(roomCode: roomCode, adminId: viewModel.username) { success in
                         if success {
@@ -253,6 +261,16 @@ struct RoomEntryCreateView: View {
                 Alert(
                     title: Text("Room not found. It may not exist or was deleted."),
                     message: Text(viewModel.alertMessage),
+                    dismissButton: .default(Text("OK")) {
+                        roomCode = ""
+                        path.removeAll(where: { $0 == "room" })
+                    }
+                )
+            }
+            .alert(isPresented: $showLengthAlert) {
+                Alert(
+                    title: Text("Room code too long"),
+                    message: Text("Room code must be 10 characters or fewer, including spaces."),
                     dismissButton: .default(Text("OK")) {
                         roomCode = ""
                         path.removeAll(where: { $0 == "room" })

@@ -202,7 +202,7 @@ class ScannerViewController: UIViewController, AVCaptureVideoDataOutputSampleBuf
             let recognizedStrings = observations.compactMap { $0.topCandidates(1).first?.string }
             let fullText = recognizedStrings.joined(separator: " ")
 
-            if fullText.count >= 4 && fullText.count <= 20 {
+            if fullText.count >= 1 && fullText.count <= 10 {
                 DispatchQueue.main.async {
                     self.stopScanning()
                     self.completion?(.success(fullText))
